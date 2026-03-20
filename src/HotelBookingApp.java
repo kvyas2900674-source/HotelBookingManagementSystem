@@ -1,60 +1,82 @@
+import java.io.*;
 import java.util.*;
 
 /**
  * Hotel Booking Application
- * Use Case 11: Concurrent Booking Simulation
- * @version 11.0
+ * Use Case 12: Data Persistence & Recovery
+ * @version 12.0
  */
 
-// Shared Booking System
-class BookingSystem {
+// Reservation (Serializable)
+class Reservation implements Serializable {
+    String reservationId;
+    String roomType;
 
-    Map<String, Integer> inventory = new HashMap<>();
-
-    BookingSystem() {
-        inventory.put("Single", 2);
-    }
-
-    // SYNCHRONIZED METHOD (critical section)
-    public synchronized void bookRoom(String guestName, String roomType) {
-
-        int available = inventory.getOrDefault(roomType, 0);
-
-        if (available > 0) {
-
-            System.out.println(guestName + " is booking...");
-
-            // simulate delay
-            try { Thread.sleep(100); } catch (Exception e) {}
-
-            inventory.put(roomType, available - 1);
-
-            System.out.println("Booking Confirmed for " + guestName +
-                    " | Remaining: " + inventory.get(roomType));
-
-        } else {
-            System.out.println("Booking Failed for " + guestName +
-                    " (No rooms available)");
-        }
+    Reservation(String reservationId, String roomType) {
+        this.reservationId = reservationId;
+        this.roomType = roomType;
     }
 }
 
 public class HotelBookingApp {
 
+    static final String FILE_NAME = "hotel_data.ser";
+
     public static void main(String[] args) {
 
-        System.out.println("=== Hotel Booking System v11.0 ===\n");
+        System.out.println("=== Hotel Booking System v12.0 ===\n");
 
-        BookingSystem system = new BookingSystem();
+        Map<String, Integer> inventory;
+        List<Reservation> bookings;
 
-        // Multiple threads (simulating users)
-        Thread t1 = new Thread(() -> system.bookRoom("Sanyam", "Single"));
-        Thread t2 = new Thread(() -> system.bookRoom("Rahul", "Single"));
-        Thread t3 = new Thread(() -> system.bookRoom("Priya", "Single"));
+        // TRY TO LOAD DATA
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(FILE_NAME))) {
 
-        // Start threads
-        t1.start();
-        t2.start();
-        t3.start();
+            inventory = (Map<String, Integer>) ois.readObject();
+            bookings = (List<Reservation>) ois.readObject();
+
+            System.out.println("Data loaded successfully!\n");
+
+        } catch (Exception e) {
+
+            System.out.println("No previous data found. Initializing new system...\n");
+
+            inventory = new HashMap<>();
+            inventory.put("Single", 2);
+            inventory.put("Double", 1);
+
+            bookings = new ArrayList<>();
+        }
+
+        // Simulate new booking
+        Reservation r1 = new Reservation("R101", "Single");
+        bookings.add(r1);
+
+        inventory.put("Single", inventory.get("Single") - 1);
+
+        System.out.println("New booking added: " + r1.reservationId);
+
+        // SAVE DATA
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(FILE_NAME))) {
+
+            oos.writeObject(inventory);
+            oos.writeObject(bookings);
+
+            System.out.println("\nData saved successfully!");
+
+        } catch (Exception e) {
+            System.out.println("Error saving data!");
+        }
+
+        // DISPLAY CURRENT STATE
+        System.out.println("\nCurrent Inventory:");
+        for (String key : inventory.keySet()) {
+            System.out.println(key + ": " + inventory.get(key));
+        }
+
+        System.out.println("\nBooking Records:");
+        for (Reservation r : bookings) {
+            System.out.println(r.reservationId + " - " + r.roomType);
+        }
     }
 }
