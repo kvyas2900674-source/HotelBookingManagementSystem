@@ -2,8 +2,8 @@ import java.util.*;
 
 /**
  * Hotel Booking Application
- * Use Case 5: Booking Request Queue (FIFO)
- * @version 5.0
+ * Use Case 6: Room Allocation & Reservation Confirmation
+ * @version 6.0
  */
 
 // Reservation class
@@ -22,24 +22,69 @@ public class HotelBookingApp {
     public static void main(String[] args) {
 
         System.out.println("===================================");
-        System.out.println(" Hotel Booking System v5.0 ");
+        System.out.println(" Hotel Booking System v6.0 ");
         System.out.println("===================================\n");
 
-        // Queue for booking requests
-        Queue<Reservation> bookingQueue = new LinkedList<>();
+        // Inventory (from UC3)
+        HashMap<String, Integer> inventory = new HashMap<>();
+        inventory.put("Single", 2);
+        inventory.put("Double", 1);
+        inventory.put("Suite", 1);
 
-        // Adding requests (FIFO order)
+        // Queue (from UC5)
+        Queue<Reservation> bookingQueue = new LinkedList<>();
         bookingQueue.add(new Reservation("Sanyam", "Single"));
         bookingQueue.add(new Reservation("Rahul", "Double"));
         bookingQueue.add(new Reservation("Priya", "Suite"));
+        bookingQueue.add(new Reservation("Amit", "Single")); // extra request
 
-        System.out.println("Booking Requests in Queue:\n");
+        // Allocation tracking
+        HashMap<String, Set<String>> allocatedRooms = new HashMap<>();
+        int roomCounter = 1;
 
-        // Display queue without removing
-        for (Reservation r : bookingQueue) {
-            System.out.println("Guest: " + r.guestName + " | Room Type: " + r.roomType);
+        System.out.println("Processing Bookings:\n");
+
+        // PROCESS QUEUE (FIFO)
+        while (!bookingQueue.isEmpty()) {
+
+            Reservation r = bookingQueue.poll();
+            String type = r.roomType;
+
+            int available = inventory.getOrDefault(type, 0);
+
+            if (available > 0) {
+
+                // Generate unique room ID
+                String roomId = type + "-" + roomCounter++;
+
+                // Ensure Set exists
+                allocatedRooms.putIfAbsent(type, new HashSet<>());
+
+                // Check uniqueness (safety)
+                if (!allocatedRooms.get(type).contains(roomId)) {
+
+                    allocatedRooms.get(type).add(roomId);
+
+                    // Update inventory immediately
+                    inventory.put(type, available - 1);
+
+                    System.out.println("Booking Confirmed:");
+                    System.out.println("Guest: " + r.guestName);
+                    System.out.println("Room Type: " + type);
+                    System.out.println("Room ID: " + roomId + "\n");
+
+                }
+
+            } else {
+                System.out.println("Booking Failed (No Availability): "
+                        + r.guestName + " for " + type + "\n");
+            }
         }
 
-        System.out.println("\nTotal Requests in Queue: " + bookingQueue.size());
+        // Final Inventory State
+        System.out.println("Final Inventory:\n");
+        for (String key : inventory.keySet()) {
+            System.out.println(key + " Remaining: " + inventory.get(key));
+        }
     }
 }
